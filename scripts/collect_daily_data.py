@@ -1,8 +1,8 @@
 """
-통합 키위 농장 데이터 수집 시스템
-- 센서 데이터 수집
-- 적산온도 계산
-- 생육 단계 자동 감지
+ECOWITT 주간 데이터 수집 및 일평균 계산
+- 주간 데이터 다운로드 (30분 간격)
+- 날짜별로 평균 계산
+- 적산온도 자동 계산
 """
 
 import os
@@ -10,6 +10,7 @@ import json
 import time
 import requests
 from datetime import datetime, timedelta
+from collections import defaultdict
 
 # 환경변수
 ECOWITT_APP_KEY = os.environ.get('ECOWITT_APP_KEY')
@@ -22,72 +23,150 @@ SENSOR_FILE = os.path.join(DATA_DIR, "sensor_history.json")
 GDD_FILE = os.path.join(DATA_DIR, "gdd_data.json")
 PHENOLOGY_FILE = os.path.join(DATA_DIR, "phenology.json")
 
-def get_daily_data(date_str):
-    """ECOWITT 일별 데이터 가져오기"""
+def get_weekly_data():
+    """ECOWITT 주간 데이터 가져오기 (30분 간격)"""
     try:
         url = "https://api.ecowitt.net/api/v3/device/history"
         t = str(int(time.time() * 1000))
+        
+        # 지난 7일
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=7)
         
         params = {
             "application_key": ECOWITT_APP_KEY,
             "api_key": ECOWITT_API_KEY,
             "mac": ECOWITT_MAC,
-            "start_date": date_str,
-            "end_date": date_str,
-            "cycle_type": "daily",
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
+            "cycle_type": "30min",  # ← 30분 간격
             "call_back": "all",
             "temp_unitid": "1",
             "t": t
         }
         
-        print(f"📡 Fetching {date_str}...")
-        response = requests.get(url, params=params, timeout=15)
+        print(f"📡 Fetching weekly data ({start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')})...")
+        response = requests.get(url, params=params, timeout=30)
         
         if response.status_code == 200:
             result = response.json()
-            if result.get("code") == 0 and result.get("data", {}).get("list"):
-                print(f"✅ Success")
-                return result["data"]
-        
-        print(f"⚠️  No data")
-        return None
+            if result.get("code") == 0:
+                data = result.get("data", {})
+                if data and "list" in data and data["list"]:
+                    print(f"✅ Received {len(data['list'])} records")
+                    return data["list"]
+                else:
+                    print(f"⚠️  No data in response")
+                    return None
+            else:
+                print(f"❌ API Error: {result.get('msg', 'Unknown')}")
+                return None
+        else:
+            print(f"❌ HTTP {response.status_code}")
+            return None
             
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Exception: {str(e)}")
         return None
 
-def parse_daily_data(data, date_str):
-    """데이터 파싱"""
+def parse_and_average_by_day(raw_data):
+    """30분 간격 데이터를 날짜별 평균으로 변환"""
     try:
-        day_data = data["list"][0]
-        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        # 날짜별로 데이터 그룹화
+        daily_data = defaultdict(lambda: {
+            'temp_2dong': [],
+            'temp_3dong': [],
+            'temp_soil': [],
+            'moisture_2dong': [],
+            'moisture_3dong': [],
+            'outdoor_temp': [],
+            'outdoor_humid': []
+        })
         
-        def safe_get(d, key, default=0.0):
+        print(f"\n📊 Processing {len(raw_data)} records...")
+        
+        for record in raw_data:
             try:
-                val = d.get(key, {})
-                if isinstance(val, dict):
-                    return float(val.get("value", default))
-                return float(val) if val is not None else default
-            except:
-                return default
+                # 타임스탬프에서 날짜 추출
+                timestamp = record.get("timestamp")
+                if not timestamp:
+                    continue
+                
+                # Unix timestamp를 날짜로 변환
+                dt = datetime.fromtimestamp(int(timestamp))
+                date_str = dt.strftime("%Y-%m-%d")
+                
+                # 안전한 값 추출
+                def safe_get(data_dict, key, default=None):
+                    try:
+                        val = data_dict.get(key, {})
+                        if isinstance(val, dict):
+                            return float(val.get("value", default))
+                        return float(val) if val is not None else default
+                    except:
+                        return default
+                
+                # 각 센서 데이터 추출
+                temp_2 = safe_get(record, "temp_ch1")
+                temp_3 = safe_get(record, "temp_ch3")
+                temp_s = safe_get(record, "temp_ch2")
+                moist_2 = safe_get(record, "soilmoisture_ch1")
+                moist_3 = safe_get(record, "soilmoisture_ch2")
+                out_t = safe_get(record, "outdoor_temp")
+                out_h = safe_get(record, "outdoor_humidity")
+                
+                # 유효한 값만 추가
+                if temp_2 is not None:
+                    daily_data[date_str]['temp_2dong'].append(temp_2)
+                if temp_3 is not None:
+                    daily_data[date_str]['temp_3dong'].append(temp_3)
+                if temp_s is not None:
+                    daily_data[date_str]['temp_soil'].append(temp_s)
+                if moist_2 is not None:
+                    daily_data[date_str]['moisture_2dong'].append(moist_2)
+                if moist_3 is not None:
+                    daily_data[date_str]['moisture_3dong'].append(moist_3)
+                if out_t is not None:
+                    daily_data[date_str]['outdoor_temp'].append(out_t)
+                if out_h is not None:
+                    daily_data[date_str]['outdoor_humid'].append(out_h)
+                    
+            except Exception as e:
+                continue
         
-        return {
-            "date": date_str,
-            "month": date_obj.month,
-            "day_of_year": date_obj.timetuple().tm_yday,
-            "temp_2dong": safe_get(day_data, "temp_ch1_avg"),
-            "temp_3dong": safe_get(day_data, "temp_ch3_avg"),
-            "temp_soil": safe_get(day_data, "temp_ch2_avg"),
-            "moisture_2dong": safe_get(day_data, "soilmoisture_ch1_avg"),
-            "moisture_3dong": safe_get(day_data, "soilmoisture_ch2_avg"),
-            "outdoor_temp": safe_get(day_data, "outdoor_temp_avg"),
-            "outdoor_temp_max": safe_get(day_data, "outdoor_temp_max"),
-            "outdoor_temp_min": safe_get(day_data, "outdoor_temp_min"),
-            "outdoor_humid": safe_get(day_data, "outdoor_humidity_avg"),
-        }
+        # 날짜별 평균 계산
+        daily_averages = []
+        
+        for date_str in sorted(daily_data.keys()):
+            data = daily_data[date_str]
+            
+            # 평균 계산
+            def calc_avg(values):
+                return round(sum(values) / len(values), 2) if values else 0.0
+            
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+            
+            avg_record = {
+                "date": date_str,
+                "month": date_obj.month,
+                "day_of_year": date_obj.timetuple().tm_yday,
+                "temp_2dong": calc_avg(data['temp_2dong']),
+                "temp_3dong": calc_avg(data['temp_3dong']),
+                "temp_soil": calc_avg(data['temp_soil']),
+                "moisture_2dong": calc_avg(data['moisture_2dong']),
+                "moisture_3dong": calc_avg(data['moisture_3dong']),
+                "outdoor_temp": calc_avg(data['outdoor_temp']),
+                "outdoor_humid": calc_avg(data['outdoor_humid']),
+                "sample_count": len(data['outdoor_temp'])  # 하루에 몇 개 샘플
+            }
+            
+            daily_averages.append(avg_record)
+            print(f"  ✅ {date_str}: {avg_record['sample_count']} samples → avg {avg_record['outdoor_temp']}°C")
+        
+        return daily_averages
         
     except Exception as e:
-        print(f"❌ Parse error: {e}")
+        print(f"❌ Parse error: {str(e)}")
         return None
 
 def load_json(filepath):
@@ -111,141 +190,139 @@ def save_json(filepath, data):
         print(f"❌ Save error: {e}")
         return False
 
-def save_sensor_data(parsed_data):
-    """센서 데이터 저장"""
+def merge_sensor_data(new_data):
+    """새 데이터를 기존 데이터와 병합"""
     history = load_json(SENSOR_FILE)
-    date_str = parsed_data["date"]
     
-    existing_idx = None
-    for idx, record in enumerate(history):
-        if record.get("date") == date_str:
-            existing_idx = idx
-            break
+    # 기존 날짜 목록
+    existing_dates = {record["date"] for record in history}
     
-    if existing_idx is not None:
-        history[existing_idx] = parsed_data
-        print(f"🔄 Updated: {date_str}")
-    else:
-        history.append(parsed_data)
-        print(f"➕ Added: {date_str}")
+    added = 0
+    updated = 0
     
+    for new_record in new_data:
+        date_str = new_record["date"]
+        
+        if date_str in existing_dates:
+            # 기존 데이터 업데이트
+            for idx, record in enumerate(history):
+                if record["date"] == date_str:
+                    history[idx] = new_record
+                    updated += 1
+                    break
+        else:
+            # 새 데이터 추가
+            history.append(new_record)
+            added += 1
+    
+    # 날짜순 정렬
     history.sort(key=lambda x: x["date"])
-    return save_json(SENSOR_FILE, history)
-
-def calculate_gdd(parsed_data, base_temp=10.0, shock_threshold=8.0):
-    """적산온도 계산"""
-    gdd_records = load_json(GDD_FILE)
-    date_str = parsed_data["date"]
-    outdoor_temp = parsed_data["outdoor_temp"]
     
-    for record in gdd_records:
-        if record.get("date") == date_str:
-            print(f"⚠️  GDD exists")
-            return True
-    
-    yesterday_gdd = 0
-    stress_days = 0
-    
-    if gdd_records:
-        last = gdd_records[-1]
-        yesterday_gdd = last.get("accumulated_gdd", 0)
-        stress_days = last.get("stress_days_remaining", 0)
-    
-    daily_gdd = 0
-    recovery_penalty = 0.5
-    
-    if outdoor_temp < shock_threshold:
-        daily_gdd = 0
-        stress_days = 3
-        print(f"❄️  Shock: {outdoor_temp}°C")
-    elif stress_days > 0:
-        raw_gdd = max(0, outdoor_temp - base_temp)
-        daily_gdd = raw_gdd * recovery_penalty
-        stress_days -= 1
-    else:
-        daily_gdd = max(0, outdoor_temp - base_temp)
-    
-    accumulated_gdd = yesterday_gdd + daily_gdd
-    
-    new_record = {
-        "date": date_str,
-        "outdoor_temp": outdoor_temp,
-        "daily_gdd": round(daily_gdd, 2),
-        "accumulated_gdd": round(accumulated_gdd, 2),
-        "stress_days_remaining": stress_days,
-        "is_shock": outdoor_temp < shock_threshold
-    }
-    
-    gdd_records.append(new_record)
-    
-    if save_json(GDD_FILE, gdd_records):
-        print(f"📈 GDD: +{daily_gdd:.2f} → {accumulated_gdd:.2f}")
-        
-        # 생육 단계 자동 감지
-        detect_phenology_stage(accumulated_gdd, date_str)
-        
+    if save_json(SENSOR_FILE, history):
+        print(f"💾 Sensor data: {added} added, {updated} updated (total: {len(history)})")
         return True
     return False
 
-def detect_phenology_stage(current_gdd, date_str):
-    """생육 단계 자동 감지 및 기록"""
+def calculate_gdd(sensor_data, base_temp=10.0, shock_threshold=8.0):
+    """적산온도 계산"""
+    gdd_records = load_json(GDD_FILE)
+    existing_dates = {r["date"] for r in gdd_records}
+    
+    # 날짜순 정렬
+    sorted_data = sorted(sensor_data, key=lambda x: x["date"])
+    
+    for record in sorted_data:
+        date_str = record["date"]
+        
+        if date_str in existing_dates:
+            continue  # 이미 계산됨
+        
+        outdoor_temp = record["outdoor_temp"]
+        
+        # 어제까지의 누적 GDD
+        yesterday_gdd = 0
+        stress_days = 0
+        
+        if gdd_records:
+            last = gdd_records[-1]
+            yesterday_gdd = last.get("accumulated_gdd", 0)
+            stress_days = last.get("stress_days_remaining", 0)
+        
+        # 오늘의 GDD 계산
+        daily_gdd = 0
+        recovery_penalty = 0.5
+        
+        if outdoor_temp < shock_threshold:
+            daily_gdd = 0
+            stress_days = 3
+        elif stress_days > 0:
+            raw_gdd = max(0, outdoor_temp - base_temp)
+            daily_gdd = raw_gdd * recovery_penalty
+            stress_days -= 1
+        else:
+            daily_gdd = max(0, outdoor_temp - base_temp)
+        
+        accumulated_gdd = yesterday_gdd + daily_gdd
+        
+        new_record = {
+            "date": date_str,
+            "outdoor_temp": outdoor_temp,
+            "daily_gdd": round(daily_gdd, 2),
+            "accumulated_gdd": round(accumulated_gdd, 2),
+            "stress_days_remaining": stress_days,
+            "is_shock": outdoor_temp < shock_threshold
+        }
+        
+        gdd_records.append(new_record)
+        print(f"  📈 {date_str}: GDD +{daily_gdd:.2f} → {accumulated_gdd:.2f}")
+    
+    if save_json(GDD_FILE, gdd_records):
+        return True
+    return False
+
+def detect_phenology_stage(sensor_data):
+    """생육 단계 자동 감지"""
+    gdd_records = load_json(GDD_FILE)
+    if not gdd_records:
+        return
+    
     phenology = load_json(PHENOLOGY_FILE)
     
-    year = datetime.strptime(date_str, "%Y-%m-%d").year
-    year_str = str(year)
-    
-    if year_str not in phenology:
-        phenology[year_str] = {}
-    
-    year_data = phenology[year_str]
-    
-    # 발아 감지 (GDD 200)
-    if current_gdd >= 200 and "bud_break" not in year_data:
-        year_data["bud_break"] = {
-            "date": date_str,
-            "gdd_at_event": round(current_gdd, 2),
-            "auto_detected": True
-        }
-        print(f"🌱 발아 감지!")
-    
-    # 개화 감지 (GDD 750)
-    if current_gdd >= 750 and "flowering_start" not in year_data:
-        year_data["flowering_start"] = {
-            "date": date_str,
-            "gdd_at_event": round(current_gdd, 2),
-            "auto_detected": True
-        }
-        print(f"🌸 개화 감지!")
+    for gdd_record in gdd_records:
+        date_str = gdd_record["date"]
+        current_gdd = gdd_record["accumulated_gdd"]
+        
+        year = datetime.strptime(date_str, "%Y-%m-%d").year
+        year_str = str(year)
+        
+        if year_str not in phenology:
+            phenology[year_str] = {}
+        
+        year_data = phenology[year_str]
+        
+        # 발아 감지
+        if current_gdd >= 200 and "bud_break" not in year_data:
+            year_data["bud_break"] = {
+                "date": date_str,
+                "gdd_at_event": round(current_gdd, 2),
+                "auto_detected": True
+            }
+            print(f"  🌱 발아 감지: {date_str}")
+        
+        # 개화 감지
+        if current_gdd >= 750 and "flowering_start" not in year_data:
+            year_data["flowering_start"] = {
+                "date": date_str,
+                "gdd_at_event": round(current_gdd, 2),
+                "auto_detected": True
+            }
+            print(f"  🌸 개화 감지: {date_str}")
     
     save_json(PHENOLOGY_FILE, phenology)
 
-def backfill_missing_dates():
-    """최근 7일 누락 데이터 보충"""
-    print("\n🔍 Checking missing dates...")
-    
-    history = load_json(SENSOR_FILE)
-    existing_dates = set(r["date"] for r in history)
-    
-    filled = 0
-    for i in range(1, 8):
-        check_date = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
-        
-        if check_date not in existing_dates:
-            print(f"📥 Backfill: {check_date}")
-            data = get_daily_data(check_date)
-            
-            if data:
-                parsed = parse_daily_data(data, check_date)
-                if parsed and save_sensor_data(parsed):
-                    calculate_gdd(parsed)
-                    filled += 1
-                    time.sleep(2)
-    
-    print(f"✅ Backfilled: {filled} dates")
-
 def main():
     print("="*60)
-    print("🥝 키위 농장 통합 데이터 수집")
+    print("🥝 키위 농장 주간 데이터 수집")
     print("="*60)
     print(f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
@@ -254,34 +331,39 @@ def main():
         print("❌ API credentials missing")
         return False
     
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    print(f"🎯 Target: {yesterday}\n")
+    # 1. 주간 데이터 가져오기
+    raw_data = get_weekly_data()
     
-    # 어제 데이터 수집
-    data = get_daily_data(yesterday)
-    
-    if not data:
-        print("⚠️  Fetch failed, trying backfill...")
-        backfill_missing_dates()
-        return True
-    
-    parsed = parse_daily_data(data, yesterday)
-    
-    if not parsed:
-        print("❌ Parse failed")
+    if not raw_data:
+        print("❌ No data received")
         return False
     
-    if not save_sensor_data(parsed):
-        print("❌ Save failed")
+    # 2. 날짜별 평균 계산
+    daily_averages = parse_and_average_by_day(raw_data)
+    
+    if not daily_averages:
+        print("❌ Failed to calculate averages")
         return False
     
-    if not calculate_gdd(parsed):
-        print("❌ GDD failed")
+    print(f"\n✅ Calculated {len(daily_averages)} daily averages")
+    
+    # 3. 센서 데이터 저장
+    print("\n💾 Saving sensor data...")
+    if not merge_sensor_data(daily_averages):
+        print("❌ Failed to save sensor data")
         return False
     
-    backfill_missing_dates()
+    # 4. 적산온도 계산
+    print("\n📈 Calculating GDD...")
+    if not calculate_gdd(daily_averages):
+        print("❌ Failed to calculate GDD")
+        return False
     
-    # 통계
+    # 5. 생육 단계 감지
+    print("\n🌱 Detecting phenology stages...")
+    detect_phenology_stage(daily_averages)
+    
+    # 6. 통계
     sensor_count = len(load_json(SENSOR_FILE))
     gdd_count = len(load_json(GDD_FILE))
     
@@ -290,7 +372,7 @@ def main():
     print("="*60)
     print(f"✅ Sensor records: {sensor_count}")
     print(f"✅ GDD records: {gdd_count}")
-    print(f"✅ Files saved to: {DATA_DIR}/")
+    print(f"✅ New data: {len(daily_averages)} days")
     print("="*60)
     
     return True
