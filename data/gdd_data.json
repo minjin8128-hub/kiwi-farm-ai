@@ -1,1 +1,66 @@
-[]
+[
+  {
+    "date": "2026-02-09",
+    "outdoor_temp": 6.18,
+    "daily_gdd": 0,
+    "accumulated_gdd": 0,
+    "stress_days_remaining": 3,
+    "is_shock": true
+  },
+  {
+    "date": "2026-02-10",
+    "outdoor_temp": 7.08,
+    "daily_gdd": 0,
+    "accumulated_gdd": 0,
+    "stress_days_remaining": 3,
+    "is_shock": true
+  },
+  {
+    "date": "2026-02-11",
+    "outdoor_temp": 5.52,
+    "daily_gdd": 0,
+    "accumulated_gdd": 0,
+    "stress_days_remaining": 3,
+    "is_shock": true
+  },
+  {
+    "date": "2026-02-12",
+    "outdoor_temp": 5.03,
+    "daily_gdd": 0,
+    "accumulated_gdd": 0,
+    "stress_days_remaining": 3,
+    "is_shock": true
+  },
+  {
+    "date": "2026-02-13",
+    "outdoor_temp": 8.68,
+    "daily_gdd": 0.0,
+    "accumulated_gdd": 0.0,
+    "stress_days_remaining": 2,
+    "is_shock": false
+  },
+  {
+    "date": "2026-02-14",
+    "outdoor_temp": 10.1,
+    "daily_gdd": 0.05,
+    "accumulated_gdd": 0.05,
+    "stress_days_remaining": 1,
+    "is_shock": false
+  },
+  {
+    "date": "2026-02-15",
+    "outdoor_temp": 8.6,
+    "daily_gdd": 0.0,
+    "accumulated_gdd": 0.05,
+    "stress_days_remaining": 0,
+    "is_shock": false
+  },
+  {
+    "date": "2026-02-16",
+    "outdoor_temp": 5.6,
+    "daily_gdd": 0,
+    "accumulated_gdd": 0.05,
+    "stress_days_remaining": 3,
+    "is_shock": true
+  }
+]

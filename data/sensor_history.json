@@ -1,1 +1,106 @@
-[]
+[
+  {
+    "date": "2026-02-09",
+    "month": 2,
+    "day_of_year": 40,
+    "temp_2dong": 6.45,
+    "temp_3dong": 0.0,
+    "temp_soil": 0.0,
+    "moisture_2dong": 46.33,
+    "moisture_3dong": 48.0,
+    "outdoor_temp": 6.18,
+    "outdoor_humid": 70.17,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-10",
+    "month": 2,
+    "day_of_year": 41,
+    "temp_2dong": 7.23,
+    "temp_3dong": 0.0,
+    "temp_soil": 0.0,
+    "moisture_2dong": 42.33,
+    "moisture_3dong": 41.83,
+    "outdoor_temp": 7.08,
+    "outdoor_humid": 88.0,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-11",
+    "month": 2,
+    "day_of_year": 42,
+    "temp_2dong": 5.98,
+    "temp_3dong": 0.0,
+    "temp_soil": 0.0,
+    "moisture_2dong": 41.5,
+    "moisture_3dong": 40.5,
+    "outdoor_temp": 5.52,
+    "outdoor_humid": 77.17,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-12",
+    "month": 2,
+    "day_of_year": 43,
+    "temp_2dong": 4.83,
+    "temp_3dong": 5.02,
+    "temp_soil": 0.0,
+    "moisture_2dong": 41.0,
+    "moisture_3dong": 39.83,
+    "outdoor_temp": 5.03,
+    "outdoor_humid": 69.5,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-13",
+    "month": 2,
+    "day_of_year": 44,
+    "temp_2dong": 8.8,
+    "temp_3dong": 8.62,
+    "temp_soil": 0.0,
+    "moisture_2dong": 41.0,
+    "moisture_3dong": 39.33,
+    "outdoor_temp": 8.68,
+    "outdoor_humid": 77.33,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-14",
+    "month": 2,
+    "day_of_year": 45,
+    "temp_2dong": 10.42,
+    "temp_3dong": 10.02,
+    "temp_soil": 0.0,
+    "moisture_2dong": 40.67,
+    "moisture_3dong": 39.0,
+    "outdoor_temp": 10.1,
+    "outdoor_humid": 87.83,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-15",
+    "month": 2,
+    "day_of_year": 46,
+    "temp_2dong": 8.42,
+    "temp_3dong": 8.77,
+    "temp_soil": 0.0,
+    "moisture_2dong": 40.0,
+    "moisture_3dong": 39.0,
+    "outdoor_temp": 8.6,
+    "outdoor_humid": 76.67,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-16",
+    "month": 2,
+    "day_of_year": 47,
+    "temp_2dong": 5.1,
+    "temp_3dong": 5.2,
+    "temp_soil": 0.0,
+    "moisture_2dong": 49.0,
+    "moisture_3dong": 51.5,
+    "outdoor_temp": 5.6,
+    "outdoor_humid": 66.75,
+    "sample_count": 4
+  }
+]
