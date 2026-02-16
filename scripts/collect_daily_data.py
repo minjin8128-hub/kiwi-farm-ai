@@ -40,7 +40,7 @@ def get_weekly_data():
             "start_date": start_date.strftime("%Y-%m-%d"),
             "end_date": end_date.strftime("%Y-%m-%d"),
             "cycle_type": "30min",  # ← 30분 간격
-            "call_back": "all",
+            "call_back": "outdoor,temp_and_humidity_ch1,temp_and_humidity_ch2,temp_and_humidity_ch3,soil_ch1,soil_ch2",
             "temp_unitid": "1",
             "t": t
         }
