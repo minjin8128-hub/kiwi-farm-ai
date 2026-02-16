@@ -34,7 +34,7 @@ def get_history_data(start_date, end_date):
             "mac": ECOWITT_MAC,
             "start_date": start_date,
             "end_date": end_date,
-            "call_back": "all",  # 예전 코드처럼 all 사용
+            "call_back": "indoor,temp_and_humidity_ch1,temp_and_humidity_ch3,temp_ch2,soil_ch1,soil_ch2",  # 예전 코드처럼 all 사용
             "temp_unitid": "1",  # 섭씨
             "pressure_unitid": "3",
             "wind_speed_unitid": "7",
