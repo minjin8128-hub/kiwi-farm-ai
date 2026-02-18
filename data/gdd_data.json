@@ -70,5 +70,13 @@
     "accumulated_gdd": 0.05,
     "stress_days_remaining": 3,
     "is_shock": true
+  },
+  {
+    "date": "2026-02-18",
+    "outdoor_temp": 8.9,
+    "daily_gdd": 0.0,
+    "accumulated_gdd": 0.05,
+    "stress_days_remaining": 2,
+    "is_shock": false
   }
 ]
