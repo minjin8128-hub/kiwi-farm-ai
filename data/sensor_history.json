@@ -55,14 +55,14 @@
     "date": "2026-02-13",
     "month": 2,
     "day_of_year": 44,
-    "temp_2dong": 8.8,
-    "temp_3dong": 8.62,
+    "temp_2dong": 5.95,
+    "temp_3dong": 5.7,
     "temp_soil": 0.0,
     "moisture_2dong": 41.0,
-    "moisture_3dong": 39.33,
-    "outdoor_temp": 8.68,
-    "outdoor_humid": 77.33,
-    "sample_count": 6
+    "moisture_3dong": 39.0,
+    "outdoor_temp": 5.9,
+    "outdoor_humid": 93.0,
+    "sample_count": 2
   },
   {
     "date": "2026-02-14",
@@ -146,13 +146,26 @@
     "date": "2026-02-20",
     "month": 2,
     "day_of_year": 51,
-    "temp_2dong": 9.92,
-    "temp_3dong": 10.6,
+    "temp_2dong": 9.73,
+    "temp_3dong": 8.25,
     "temp_soil": 0.0,
-    "moisture_2dong": 43.5,
-    "moisture_3dong": 40.5,
-    "outdoor_temp": 10.5,
-    "outdoor_humid": 63.75,
-    "sample_count": 4
+    "moisture_2dong": 43.17,
+    "moisture_3dong": 40.33,
+    "outdoor_temp": 8.3,
+    "outdoor_humid": 72.17,
+    "sample_count": 6
+  },
+  {
+    "date": "2026-02-21",
+    "month": 2,
+    "day_of_year": 52,
+    "temp_2dong": 10.37,
+    "temp_3dong": 15.87,
+    "temp_soil": 0.0,
+    "moisture_2dong": 43.67,
+    "moisture_3dong": 40.0,
+    "outdoor_temp": 16.17,
+    "outdoor_humid": 58.67,
+    "sample_count": 3
   }
 ]
